@@ -2,35 +2,34 @@
 from __future__ import annotations
 
 import json
-
-from jinja2 import Environment, StrictUndefined
+from textwrap import dedent
 
 from prompt_optimizer.domain.models import OptimizationStep, PromptSession
 
 
 class PromptManager:
-    """Render Jinja2 templates used throughout the optimization pipeline."""
+    """Render templated prompts used throughout the optimization pipeline."""
 
-    analyze_step_template = (
+    analyze_step_template = dedent(
         """
         You are assisting with the prompt optimization process.
-        Evaluate and expand the "{{ step_label }}" dimension of the prompt.
+        Evaluate and expand the "{step_label}" dimension of the prompt.
 
         Draft prompt:
-        {{ user_prompt }}
+        {user_prompt}
 
         Previously collected parameters:
-        {{ parameters | tojson }}
+        {parameters}
 
         Additional guidance from the operator (optional):
-        {{ feedback | default("None provided", true) }}
+        {feedback}
 
-        Respond with a concise recommendation for the {{ step_label }} and
+        Respond with a concise recommendation for the {step_label} and
         include a short justification. Keep the answer plain text.
         """
     ).strip()
 
-    global_harmonize_template = (
+    global_harmonize_template = dedent(
         """
         You are the final reviewer for an optimized prompt.
         Given the session state below, harmonize the components into a single,
@@ -38,16 +37,12 @@ class PromptManager:
         preserve the user's intent.
 
         Session state (JSON):
-        {{ session_state | tojson }}
+        {session_state}
 
         Return the harmonized prompt as polished Markdown. Include a brief note
         explaining the key changes you applied to ensure consistency.
         """
     ).strip()
-
-    def __init__(self) -> None:
-        self._environment = Environment(undefined=StrictUndefined)
-        self._environment.filters["tojson"] = json.dumps
 
     def render_analyze_step(
         self,
@@ -58,16 +53,17 @@ class PromptManager:
     ) -> str:
         """Render the analysis prompt for a specific optimization step."""
 
-        template = self._environment.from_string(self.analyze_step_template)
-        return template.render(
+        feedback_value = feedback if feedback is not None else "None provided"
+        return self.analyze_step_template.format(
             step_label=step.value.replace("_", " ").title(),
             user_prompt=user_prompt,
-            parameters=session.parameters,
-            feedback=feedback,
+            parameters=json.dumps(session.parameters),
+            feedback=feedback_value,
         )
 
     def render_global_harmonize(self, session: PromptSession) -> str:
         """Render the harmonization prompt for the full session state."""
 
-        template = self._environment.from_string(self.global_harmonize_template)
-        return template.render(session_state=session.model_dump())
+        return self.global_harmonize_template.format(
+            session_state=json.dumps(session.model_dump())
+        )

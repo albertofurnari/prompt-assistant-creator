@@ -107,6 +107,12 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 prompt_session, "Choose a model [1/2]: "
             ).strip()
 
+        model_choice: str | None = None
+        while model_choice is None:
+            raw_choice = prompt_for_input(
+                prompt_session, "Choose a model [1/2]: "
+            ).strip()
+
             normalized_choice = _normalize_model_choice(raw_choice)
             default_choice = _normalize_model_choice(settings.default_model)
 
