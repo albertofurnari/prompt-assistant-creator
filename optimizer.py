@@ -8,6 +8,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.theme import Theme
 
 from prompt_optimizer.domain.models import OptimizationStep, PromptSession
 from prompt_optimizer.llm.client import (
@@ -44,6 +45,29 @@ class AppSettings(BaseSettings):
             "gemini_api_key", "GEMINI_API_KEY", "PROMPT_OPT_GEMINI_API_KEY"
         ),
     )
+    primary_color: str = "#7FB3D5"
+    accent_color: str = "#82E0AA"
+    muted_color: str = "#ABB2B9"
+    border_color: str = "#A9CCE3"
+    warning_color: str = "#F7DC6F"
+    error_color: str = "#E6B0AA"
+
+
+def build_console(settings: AppSettings) -> Console:
+    """Create a themed Rich console using a relaxing palette."""
+
+    theme = Theme(
+        {
+            "primary": settings.primary_color,
+            "accent": settings.accent_color,
+            "muted": settings.muted_color,
+            "warning": settings.warning_color,
+            "error": settings.error_color,
+            "success": settings.accent_color,
+        }
+    )
+
+    return Console(theme=theme)
 
 def build_client(model_choice: str, settings: AppSettings) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
@@ -118,7 +142,14 @@ def run_cli(settings: AppSettings, console: Console) -> None:
         "Prompt Optimizer CLI\n"
         "State Machine: User Intent → Parameters → Harmonization → Final Output"
     )
-    console.print(Panel.fit(welcome_message, title="Welcome"))
+    console.print(
+        Panel.fit(
+            welcome_message,
+            title="[accent]Welcome[/accent]",
+            border_style=settings.border_color,
+            style="primary",
+        )
+    )
 
     prompt_manager = PromptManager()
     prompt_session: PromptToolkitSession[str] = PromptToolkitSession()
@@ -127,7 +158,9 @@ def run_cli(settings: AppSettings, console: Console) -> None:
         console.print(
             Panel.fit(
                 "[1] Gemini (gemini-2.5-flash)\n[2] ChatGPT (gpt-5)",
-                title="Select Model",
+                title="[accent]Select Model[/accent]",
+                border_style=settings.border_color,
+                style="primary",
             )
         )
 
@@ -144,27 +177,31 @@ def run_cli(settings: AppSettings, console: Console) -> None:
 
             if model_choice is None:
                 console.print(
-                    "[red]Invalid selection. Please choose '1' for Gemini or '2' for ChatGPT.[/red]"
+                    "[error]Invalid selection. Please choose '1' for Gemini or '2' for ChatGPT.[/error]"
                 )
 
         try:
             client = build_client(model_choice, settings)
         except ValueError as error:
-            console.print(f"[red]{error} Please set the required API key and retry.[/red]\n")
+            console.print(
+                f"[error]{error} Please set the required API key and retry.[/error]\n"
+            )
             continue
         engine = PromptOptimizerEngine(prompt_manager=prompt_manager, client=client)
         harmonizer = GlobalHarmonizer(prompt_manager=prompt_manager, client=client)
 
-        console.print(f"Using backend mode: [bold]{model_choice}[/bold]\n")
         console.print(
-            "Enter a draft prompt. Finish input with Ctrl-D or an empty line on a new prompt."
+            f"Using backend mode: [accent]{model_choice}[/accent]\n"
+        )
+        console.print(
+            "[muted]Enter a draft prompt. Finish input with Ctrl-D or an empty line on a new prompt.[/muted]"
         )
         raw_prompt = prompt_for_multiline(
             prompt_session, "Draft Prompt (multi-line supported): "
         ).strip()
 
         if not raw_prompt or raw_prompt.strip().lower() == "exit":
-            console.print("\n[dim]Session aborted by user.[/dim]")
+            console.print("\n[muted]Session aborted by user.[/muted]")
             return
 
         session_state = PromptSession(parameters={"draft_prompt": raw_prompt})
@@ -205,8 +242,10 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 console.print(
                     Panel(
                         analysis_result.summary,
-                        title=f"{step.name.replace('_', ' ').title()}",
+                        title=f"[accent]{step.name.replace('_', ' ').title()}[/accent]",
                         subtitle="Accept this suggestion?",
+                        border_style=settings.border_color,
+                        style="primary",
                     )
                 )
 
@@ -233,17 +272,24 @@ def run_cli(settings: AppSettings, console: Console) -> None:
         final_prompt = session_state.parameters.get(
             OptimizationStep.FINAL_OUTPUT.value, ""
         )
-        console.print(Panel(Markdown(final_prompt), title="Optimized Prompt"))
+        console.print(
+            Panel(
+                Markdown(final_prompt),
+                title="[accent]Optimized Prompt[/accent]",
+                border_style=settings.border_color,
+                style="primary",
+            )
+        )
 
         restart = prompt_for_input(prompt_session, "Restart session? [y/N]: ").strip().lower()
         if restart not in {"y", "yes"}:
-            console.print("\n[dim]Session complete. Goodbye![/dim]")
+            console.print("\n[muted]Session complete. Goodbye![/muted]")
             return
 
 
 def main() -> None:
-    console = Console()
     settings = AppSettings()
+    console = build_console(settings)
 
     try:
         run_cli(settings=settings, console=console)
