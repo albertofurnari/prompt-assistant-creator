@@ -40,9 +40,6 @@ class AppSettings(BaseSettings):
         ),
     )
 
-    if not normalized:
-        return None
-
 def build_client(model_choice: str) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
 
@@ -99,13 +96,6 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 title="Select Model",
             )
         )
-    )
-
-        model_choice: str | None = None
-        while model_choice is None:
-            raw_choice = prompt_for_input(
-                prompt_session, "Choose a model [1/2]: "
-            ).strip()
 
         model_choice: str | None = None
         while model_choice is None:
