@@ -135,6 +135,83 @@ def prompt_for_multiline(session: PromptToolkitSession, message: str) -> str:
     return "\n".join(lines)
 
 
+def select_theme(
+    settings: AppSettings, session: PromptToolkitSession, console: Console
+) -> tuple[AppSettings, Console]:
+    """Present the theme selector as the first menu and apply the choice."""
+
+    theme_options: dict[str, tuple[str, dict[str, str]]] = {
+        "1": (
+            "Calm Breeze (default)",
+            {
+                "primary_color": "#7FB3D5",
+                "accent_color": "#82E0AA",
+                "muted_color": "#ABB2B9",
+                "border_color": "#A9CCE3",
+                "warning_color": "#F7DC6F",
+                "error_color": "#E6B0AA",
+            },
+        ),
+        "2": (
+            "Soft Sunset",
+            {
+                "primary_color": "#F5CBA7",
+                "accent_color": "#F1948A",
+                "muted_color": "#D5D8DC",
+                "border_color": "#F0B27A",
+                "warning_color": "#F7DC6F",
+                "error_color": "#E59866",
+            },
+        ),
+        "3": (
+            "Forest Breeze",
+            {
+                "primary_color": "#A9DFBF",
+                "accent_color": "#73C6B6",
+                "muted_color": "#AAB7B8",
+                "border_color": "#7DCEA0",
+                "warning_color": "#F9E79F",
+                "error_color": "#E6B0AA",
+            },
+        ),
+    }
+
+    theme_menu = "\n".join(
+        f"[{option}] {name}" for option, (name, _) in theme_options.items()
+    )
+
+    console.print(
+        Panel.fit(
+            theme_menu,
+            title="[accent]Select Theme[/accent]",
+            border_style=settings.border_color,
+            style="primary",
+        )
+    )
+
+    chosen_option: str | None = None
+    while chosen_option is None:
+        selection = prompt_for_input(
+            session, f"Choose a theme [1-{len(theme_options)}]: "
+        ).strip() or "1"
+
+        if selection in theme_options:
+            chosen_option = selection
+        else:
+            console.print(
+                "[error]Invalid theme selection. Please choose a listed option.[/error]"
+            )
+
+    _, theme_values = theme_options[chosen_option]
+    updated_settings = settings.model_copy(update=theme_values)
+    themed_console = build_console(updated_settings)
+    themed_console.print(
+        f"[muted]Applied theme: [accent]{theme_options[chosen_option][0]}[/accent][/muted]\n"
+    )
+
+    return updated_settings, themed_console
+
+
 def run_cli(settings: AppSettings, console: Console) -> None:
     """Run the interactive Prompt Optimizer CLI workflow."""
 
@@ -153,6 +230,8 @@ def run_cli(settings: AppSettings, console: Console) -> None:
 
     prompt_manager = PromptManager()
     prompt_session: PromptToolkitSession[str] = PromptToolkitSession()
+
+    settings, console = select_theme(settings, prompt_session, console)
 
     while True:
         console.print(
