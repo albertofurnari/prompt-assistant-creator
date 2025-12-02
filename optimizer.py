@@ -63,6 +63,7 @@ def _normalize_model_choice(choice: str) -> str | None:
 
     return None
 
+    return None
 
 def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
     """Prompt the user for input while keeping stdout patched for Rich."""
@@ -77,6 +78,15 @@ def prompt_for_multiline(session: PromptToolkitSession, message: str) -> str:
     with patch_stdout():
         return session.prompt(message, multiline=True)
 
+def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
+    """Prompt the user for input while keeping stdout patched for Rich."""
+
+    with patch_stdout():
+        return session.prompt(message)
+
+
+def run_cli(settings: AppSettings, console: Console) -> None:
+    """Run the interactive Prompt Optimizer CLI workflow."""
 
 def run_cli(settings: AppSettings, console: Console) -> None:
     """Run the interactive Prompt Optimizer CLI workflow."""
@@ -99,6 +109,7 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 title="Select Model",
             )
         )
+    )
 
         model_choice: str | None = None
         while model_choice is None:
