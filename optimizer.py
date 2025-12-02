@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from prompt_toolkit import PromptSession
+from prompt_toolkit import PromptSession as PromptToolkitSession
 from prompt_toolkit.patch_stdout import patch_stdout
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from prompt_optimizer.domain.models import OptimizationStep
-from prompt_optimizer.llm.client import MockLLMClient
+from prompt_optimizer.domain.models import OptimizationStep, PromptSession
+from prompt_optimizer.llm.client import LLMClient, MockLLMClient
+from prompt_optimizer.pipelines.harmonizer import GlobalHarmonizer
+from prompt_optimizer.prompts.manager import PromptManager
+from prompt_optimizer.state_machine.engine import PromptOptimizerEngine
 
 
 class AppSettings(BaseSettings):
@@ -17,15 +22,30 @@ class AppSettings(BaseSettings):
         env_prefix="PROMPT_OPT_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
-    default_step: OptimizationStep = OptimizationStep.USER_INTENT
+    default_model: str = "mock"
+    openai_api_key: str | None = None
+    gemini_api_key: str | None = None
 
 
-console = Console()
+def build_client(model_choice: str) -> LLMClient:
+    """Instantiate an LLM client based on the user's selection."""
+
+    return MockLLMClient(mode=model_choice)
 
 
-def run_cli(settings: AppSettings, client: MockLLMClient) -> None:
+def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
+    """Prompt the user for input while keeping stdout patched for Rich."""
+
+    with patch_stdout():
+        return session.prompt(message)
+
+
+def run_cli(settings: AppSettings, console: Console) -> None:
+    """Run the interactive Prompt Optimizer CLI workflow."""
+
     console.print(
         Panel.fit(
             "Prompt Optimizer CLI\n"
@@ -33,26 +53,89 @@ def run_cli(settings: AppSettings, client: MockLLMClient) -> None:
             title="Welcome",
         )
     )
-    console.print(f"Using backend mode: [bold]{client.mode}[/bold]\n")
 
-    prompt_session: PromptSession[str] = PromptSession()
-    with patch_stdout():
-        user_prompt: str | None = prompt_session.prompt(
-            "Enter a draft prompt (or 'exit'): "
-        )
+    prompt_manager = PromptManager()
+    client = build_client(settings.default_model)
+    engine = PromptOptimizerEngine(prompt_manager=prompt_manager, client=client)
+    harmonizer = GlobalHarmonizer(prompt_manager=prompt_manager, client=client)
 
-    if user_prompt and user_prompt.strip().lower() != "exit":
-        response = client.generate(user_prompt, step=settings.default_step)
-        console.print("\n[bold green]Mock LLM Response[/bold green]")
-        console.print(response)
+    console.print(f"Using backend mode: [bold]{settings.default_model}[/bold]\n")
 
+    prompt_session: PromptToolkitSession[str] = PromptToolkitSession()
+    raw_prompt = prompt_for_input(prompt_session, "Enter a draft prompt (or 'exit'): ")
+
+    if not raw_prompt or raw_prompt.strip().lower() == "exit":
+        console.print("\n[dim]Session aborted by user.[/dim]")
+        return
+
+    session_state = PromptSession(parameters={"user_intent": raw_prompt})
+
+    steps_to_run = [
+        OptimizationStep.USER_INTENT,
+        OptimizationStep.ROLE,
+        OptimizationStep.OBJECTIVE,
+        OptimizationStep.AUDIENCE,
+        OptimizationStep.TONE,
+        OptimizationStep.CONSTRAINTS,
+        OptimizationStep.CONTEXT,
+    ]
+
+    for step in steps_to_run:
+        confirmed = False
+        feedback: str | None = None
+
+        while not confirmed:
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("{task.description}"),
+                transient=True,
+                console=console,
+            ) as progress:
+                progress.add_task(f"Generating {step.name.title()}...", total=None)
+                session_state = engine.process_step(
+                    session=session_state,
+                    step=step,
+                    user_prompt=raw_prompt,
+                    feedback=feedback,
+                )
+
+            latest_result = session_state.analysis_history[-1]
+            console.print(
+                Panel(
+                    latest_result.summary,
+                    title=f"{step.name.replace('_', ' ').title()}",
+                    subtitle="Accept this suggestion?",
+                )
+            )
+
+            confirmation = prompt_for_input(prompt_session, "Accept? [Y/n]: ")
+            if confirmation.strip().lower().startswith("n"):
+                feedback = prompt_for_input(
+                    prompt_session, "Provide feedback for refinement: "
+                )
+                continue
+
+            confirmed = True
+
+    with Progress(
+        SpinnerColumn(), TextColumn("{task.description}"), transient=True, console=console
+    ) as progress:
+        progress.add_task("Harmonizing final prompt...", total=None)
+        session_state = harmonizer.harmonize(session_state)
+
+    final_prompt = session_state.parameters.get(OptimizationStep.FINAL_OUTPUT.value, "")
+    console.print(Panel(Markdown(final_prompt), title="Optimized Prompt"))
     console.print("\n[dim]Session complete. Goodbye![/dim]")
 
 
 def main() -> None:
+    console = Console()
     settings = AppSettings()
-    client = MockLLMClient(mode="dry-run")
-    run_cli(settings, client)
+
+    try:
+        run_cli(settings=settings, console=console)
+    except KeyboardInterrupt:
+        console.print("\n[red]Interrupted by user. Exiting...[/red]")
 
 
 if __name__ == "__main__":
