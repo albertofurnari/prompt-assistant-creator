@@ -40,9 +40,6 @@ class AppSettings(BaseSettings):
         ),
     )
 
-    if not normalized:
-        return None
-
 def build_client(model_choice: str) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
 
@@ -76,8 +73,24 @@ def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
 def prompt_for_multiline(session: PromptToolkitSession, message: str) -> str:
     """Prompt the user for multi-line input."""
 
+    lines: list[str] = []
+
     with patch_stdout():
-        return session.prompt(message, multiline=True)
+        while True:
+            try:
+                prompt_message = message if not lines else "... "
+                line = session.prompt(prompt_message)
+            except EOFError:
+                # Finish input on Ctrl-D even when the buffer is empty.
+                break
+
+            if line == "":
+                # An empty line ends the multi-line capture.
+                break
+
+            lines.append(line)
+
+    return "\n".join(lines)
 
 
 def run_cli(settings: AppSettings, console: Console) -> None:
@@ -99,13 +112,6 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 title="Select Model",
             )
         )
-    )
-
-        model_choice: str | None = None
-        while model_choice is None:
-            raw_choice = prompt_for_input(
-                prompt_session, "Choose a model [1/2]: "
-            ).strip()
 
         model_choice: str | None = None
         while model_choice is None:
