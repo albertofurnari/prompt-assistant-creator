@@ -65,5 +65,5 @@ class PromptManager:
         """Render the harmonization prompt for the full session state."""
 
         return self.global_harmonize_template.format(
-            session_state=json.dumps(session.model_dump())
+            session_state=json.dumps(session.model_dump(mode="json"))
         )
