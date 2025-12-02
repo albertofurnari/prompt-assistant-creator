@@ -43,22 +43,6 @@ class AppSettings(BaseSettings):
     if not normalized:
         return None
 
-    if normalized in {"1", "gemini", "gemini-2.5-flash", "gemini 2.5 flash"}:
-        return "gemini-2.5-flash"
-
-    if normalized in {"2", "chatgpt", "gpt-5", "gpt5"}:
-        return "gpt-5"
-
-    return None
-
-    return None
-
-def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
-    """Prompt the user for input while keeping stdout patched for Rich."""
-
-    with patch_stdout():
-        return session.prompt(message)
-
 def build_client(model_choice: str) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
 
@@ -110,7 +94,7 @@ def run_cli(settings: AppSettings, console: Console) -> None:
 
     while True:
         console.print(
-            Panel(
+            Panel.fit(
                 "[1] Gemini (gemini-2.5-flash)\n[2] ChatGPT (gpt-5)",
                 title="Select Model",
             )
@@ -122,9 +106,11 @@ def run_cli(settings: AppSettings, console: Console) -> None:
             raw_choice = prompt_for_input(
                 prompt_session, "Choose a model [1/2]: "
             ).strip()
-            model_choice = _normalize_model_choice(raw_choice) or _normalize_model_choice(
-                settings.default_model
-            )
+
+            normalized_choice = _normalize_model_choice(raw_choice)
+            default_choice = _normalize_model_choice(settings.default_model)
+
+            model_choice = normalized_choice or default_choice
 
             if model_choice is None:
                 console.print(
