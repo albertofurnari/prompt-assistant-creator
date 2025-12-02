@@ -40,6 +40,24 @@ class AppSettings(BaseSettings):
         ),
     )
 
+    if not normalized:
+        return None
+
+    if normalized in {"1", "gemini", "gemini-2.5-flash", "gemini 2.5 flash"}:
+        return "gemini-2.5-flash"
+
+    if normalized in {"2", "chatgpt", "gpt-5", "gpt5"}:
+        return "gpt-5"
+
+    return None
+
+    return None
+
+def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
+    """Prompt the user for input while keeping stdout patched for Rich."""
+
+    with patch_stdout():
+        return session.prompt(message)
 
 def build_client(model_choice: str) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
@@ -97,6 +115,7 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                 title="Select Model",
             )
         )
+    )
 
         model_choice: str | None = None
         while model_choice is None:
