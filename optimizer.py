@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from prompt_toolkit import PromptSession as PromptToolkitSession
 from prompt_toolkit.patch_stdout import patch_stdout
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
 from rich.markdown import Markdown
@@ -22,9 +23,22 @@ class AppSettings(BaseSettings):
         env_prefix="PROMPT_OPT_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="allow",
     )
 
     default_model: str = "mock"
+    openai_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "openai_api_key", "OPENAI_API_KEY", "PROMPT_OPT_OPENAI_API_KEY"
+        ),
+    )
+    gemini_api_key: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "gemini_api_key", "GEMINI_API_KEY", "PROMPT_OPT_GEMINI_API_KEY"
+        ),
+    )
 
 
 def build_client(model_choice: str) -> LLMClient:
@@ -39,6 +53,18 @@ def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
     with patch_stdout():
         return session.prompt(message)
 
+    return MockLLMClient(mode=model_choice)
+
+
+def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
+    """Prompt the user for input while keeping stdout patched for Rich."""
+
+    with patch_stdout():
+        return session.prompt(message)
+
+
+def run_cli(settings: AppSettings, console: Console) -> None:
+    """Run the interactive Prompt Optimizer CLI workflow."""
 
 def run_cli(settings: AppSettings, console: Console) -> None:
     """Run the interactive Prompt Optimizer CLI workflow."""
