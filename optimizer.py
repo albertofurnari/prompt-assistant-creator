@@ -22,9 +22,12 @@ class AppSettings(BaseSettings):
         env_prefix="PROMPT_OPT_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     default_model: str = "mock"
+    openai_api_key: str | None = None
+    gemini_api_key: str | None = None
 
 
 def build_client(model_choice: str) -> LLMClient:
