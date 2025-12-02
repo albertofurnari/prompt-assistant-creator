@@ -53,6 +53,18 @@ def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
     with patch_stdout():
         return session.prompt(message)
 
+    return MockLLMClient(mode=model_choice)
+
+
+def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
+    """Prompt the user for input while keeping stdout patched for Rich."""
+
+    with patch_stdout():
+        return session.prompt(message)
+
+
+def run_cli(settings: AppSettings, console: Console) -> None:
+    """Run the interactive Prompt Optimizer CLI workflow."""
 
 def run_cli(settings: AppSettings, console: Console) -> None:
     """Run the interactive Prompt Optimizer CLI workflow."""
