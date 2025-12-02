@@ -1,0 +1,98 @@
+[project]
+name = "prompt-optimizer-cli"
+version = "0.1.0"
+description = "CLI tool for structuring and optimizing prompts using multi-backend LLM orchestration."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Prompt Optimizer Team" }
+]
+
+# Runtime dependencies only
+dependencies = [
+    "rich>=13.7",
+    "prompt_toolkit>=3.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "google-generativeai>=0.5",
+    "openai>=1.12",
+    "structlog>=23.2",
+]
+
+# Dev-only dependencies
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-sugar>=0.9",
+    "syrupy>=4.7",
+    "hypothesis>=6.100",
+    "ruff>=0.7.0",
+    "mypy>=1.11",
+    "black>=24.10",
+    "vcrpy>=4.3",
+    "pre-commit>=3.7",
+    "types-PyYAML",
+    "types-requests",
+]
+
+[project.scripts]
+prompt-optimizer = "optimizer:main"
+
+# -------------------
+# RUFF CONFIG
+# -------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+src = ["prompt_optimizer", "tests", "optimizer.py"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+    "S",
+    "C4",
+    "DTZ",
+    "PL",
+    "RET",
+    "SIM",
+]
+ignore = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["prompt_optimizer"]
+combine-as-imports = true
+
+# -------------------
+# MYPY
+# -------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+plugins = ["pydantic.mypy"]
+namespace_packages = true
+explicit_package_bases = true
+exclude = "(^build/|^dist/|^prompt_optimizer_cli\\.egg-info/)"
+
+# -------------------
+# PYTEST
+# -------------------
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+# -------------------
+# BLACK (optional but recommended)
+# -------------------
+[tool.black]
+line-length = 88
+target-version = ['py312']
