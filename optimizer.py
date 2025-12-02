@@ -47,24 +47,29 @@ def build_client(model_choice: str) -> LLMClient:
     return MockLLMClient(mode=model_choice)
 
 
+def _normalize_model_choice(choice: str) -> str | None:
+    """Normalize user input into a supported model identifier."""
+
+    normalized = choice.strip().lower()
+
+    if not normalized:
+        return None
+
+    if normalized in {"1", "gemini", "gemini-2.5-flash", "gemini 2.5 flash"}:
+        return "gemini-2.5-flash"
+
+    if normalized in {"2", "chatgpt", "gpt-5", "gpt5"}:
+        return "gpt-5"
+
+    return None
+
+
 def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
     """Prompt the user for input while keeping stdout patched for Rich."""
 
     with patch_stdout():
         return session.prompt(message)
 
-    return MockLLMClient(mode=model_choice)
-
-
-def prompt_for_input(session: PromptToolkitSession, message: str) -> str:
-    """Prompt the user for input while keeping stdout patched for Rich."""
-
-    with patch_stdout():
-        return session.prompt(message)
-
-
-def run_cli(settings: AppSettings, console: Console) -> None:
-    """Run the interactive Prompt Optimizer CLI workflow."""
 
 def run_cli(settings: AppSettings, console: Console) -> None:
     """Run the interactive Prompt Optimizer CLI workflow."""
@@ -78,13 +83,35 @@ def run_cli(settings: AppSettings, console: Console) -> None:
     )
 
     prompt_manager = PromptManager()
-    client = build_client(settings.default_model)
+    prompt_session: PromptToolkitSession[str] = PromptToolkitSession()
+
+    console.print(
+        Panel(
+            "[1] Gemini (gemini-2.5-flash)\n[2] ChatGPT (gpt-5)",
+            title="Select Model",
+        )
+    )
+
+    model_choice: str | None = None
+    while model_choice is None:
+        raw_choice = prompt_for_input(
+            prompt_session, "Choose a model [1/2]: "
+        ).strip()
+        model_choice = _normalize_model_choice(raw_choice) or _normalize_model_choice(
+            settings.default_model
+        )
+
+        if model_choice is None:
+            console.print(
+                "[red]Invalid selection. Please choose '1' for Gemini or '2' for ChatGPT.[/red]"
+            )
+
+    client = build_client(model_choice)
     engine = PromptOptimizerEngine(prompt_manager=prompt_manager, client=client)
     harmonizer = GlobalHarmonizer(prompt_manager=prompt_manager, client=client)
 
-    console.print(f"Using backend mode: [bold]{settings.default_model}[/bold]\n")
+    console.print(f"Using backend mode: [bold]{model_choice}[/bold]\n")
 
-    prompt_session: PromptToolkitSession[str] = PromptToolkitSession()
     raw_prompt = prompt_for_input(prompt_session, "Enter a draft prompt (or 'exit'): ")
 
     if not raw_prompt or raw_prompt.strip().lower() == "exit":
