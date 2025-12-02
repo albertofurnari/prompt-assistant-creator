@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import abc
 
+import google.generativeai as genai
+from openai import OpenAI
+
 from prompt_optimizer.domain.models import OptimizationStep, TokenUsage
 
 
@@ -37,7 +40,8 @@ class MockLLMClient(LLMClient):
 
         prefix = "[MOCK]"
         step_label = step.value if step else "general"
-        return (f"{prefix} Response for {step_label}: "
+        return (
+            f"{prefix} Response for {step_label}: "
             "synthesized output based on prompt."
         )
 
@@ -48,4 +52,72 @@ class MockLLMClient(LLMClient):
             cached_tokens=self._cached_tokens,
             cost_usd=0.0,
         )
+
+
+class OpenAILLMClient(LLMClient):
+    """OpenAI-powered client for live GPT-style generations."""
+
+    def __init__(self, model: str, api_key: str) -> None:
+        self.mode = model
+        self._model = model
+        self._client = OpenAI(api_key=api_key)
+        self._usage = TokenUsage()
+
+    def generate(self, prompt: str, step: OptimizationStep | None = None) -> str:
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        message = response.choices[0].message.content or ""
+        usage = response.usage
+
+        prompt_tokens = usage.prompt_tokens if usage else 0
+        completion_tokens = usage.completion_tokens if usage else 0
+
+        self._usage = TokenUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            cached_tokens=0,
+            cost_usd=0.0,
+        )
+
+        return message
+
+    def get_token_usage(self) -> TokenUsage:
+        return self._usage
+
+
+class GeminiLLMClient(LLMClient):
+    """Gemini-powered client for Google Generative AI models."""
+
+    def __init__(self, model: str, api_key: str) -> None:
+        self.mode = model
+        self._model = model
+        self._usage = TokenUsage()
+        genai.configure(api_key=api_key)
+        self._client = genai.GenerativeModel(model)
+
+    def generate(self, prompt: str, step: OptimizationStep | None = None) -> str:
+        response = self._client.generate_content(prompt)
+        usage_metadata = response.usage_metadata
+        if usage_metadata is None:
+            self._usage = TokenUsage()
+            return response.text
+        prompt_tokens = usage_metadata.prompt_token_count or 0
+        completion_tokens = usage_metadata.candidates_token_count or 0
+        total_tokens = usage_metadata.total_token_count or 0
+        cached_tokens = max(total_tokens - (prompt_tokens + completion_tokens), 0)
+
+        self._usage = TokenUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            cached_tokens=cached_tokens,
+            cost_usd=0.0,
+        )
+
+        return response.text
+
+    def get_token_usage(self) -> TokenUsage:
+        return self._usage
 

@@ -10,7 +10,12 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from prompt_optimizer.domain.models import OptimizationStep, PromptSession
-from prompt_optimizer.llm.client import LLMClient, MockLLMClient
+from prompt_optimizer.llm.client import (
+    GeminiLLMClient,
+    LLMClient,
+    MockLLMClient,
+    OpenAILLMClient,
+)
 from prompt_optimizer.pipelines.harmonizer import GlobalHarmonizer
 from prompt_optimizer.prompts.manager import PromptManager
 from prompt_optimizer.state_machine.engine import PromptOptimizerEngine
@@ -40,8 +45,18 @@ class AppSettings(BaseSettings):
         ),
     )
 
-def build_client(model_choice: str) -> LLMClient:
+def build_client(model_choice: str, settings: AppSettings) -> LLMClient:
     """Instantiate an LLM client based on the user's selection."""
+
+    if model_choice == "gemini-2.5-flash":
+        if not settings.gemini_api_key:
+            raise ValueError("Gemini API key not configured.")
+        return GeminiLLMClient(model_choice, api_key=settings.gemini_api_key)
+
+    if model_choice == "gpt-5":
+        if not settings.openai_api_key:
+            raise ValueError("OpenAI API key not configured.")
+        return OpenAILLMClient(model_choice, api_key=settings.openai_api_key)
 
     return MockLLMClient(mode=model_choice)
 
@@ -59,6 +74,9 @@ def _normalize_model_choice(choice: str) -> str | None:
 
     if normalized in {"2", "chatgpt", "gpt-5", "gpt5"}:
         return "gpt-5"
+
+    if normalized in {"mock", "dry-run", "dryrun"}:
+        return "mock"
 
     return None
 
@@ -129,7 +147,11 @@ def run_cli(settings: AppSettings, console: Console) -> None:
                     "[red]Invalid selection. Please choose '1' for Gemini or '2' for ChatGPT.[/red]"
                 )
 
-        client = build_client(model_choice)
+        try:
+            client = build_client(model_choice, settings)
+        except ValueError as error:
+            console.print(f"[red]{error} Please set the required API key and retry.[/red]\n")
+            continue
         engine = PromptOptimizerEngine(prompt_manager=prompt_manager, client=client)
         harmonizer = GlobalHarmonizer(prompt_manager=prompt_manager, client=client)
 
