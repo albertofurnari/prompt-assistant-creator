@@ -19,20 +19,16 @@ class PromptOptimizerEngine:
         step: OptimizationStep,
         user_prompt: str,
         feedback: str | None = None,
-    ) -> PromptSession:
-        """Process a single optimization step and update the session state."""
+    ) -> AnalysisResult:
+        """Generate a suggestion for a single optimization step."""
 
         prompt = self._prompt_manager.render_analyze_step(
             step=step, user_prompt=user_prompt, session=session, feedback=feedback
         )
         response = self._client.generate(prompt, step=step)
 
-        analysis_result = AnalysisResult(
+        return AnalysisResult(
             step=step,
             summary=response,
             details={"suggestion": response, "prompt": prompt},
         )
-
-        session.parameters[step.value] = response
-        session.record_analysis(analysis_result)
-        return session
