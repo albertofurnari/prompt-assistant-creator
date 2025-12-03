@@ -62,7 +62,7 @@ graph TD
 
 ```bash
 # Clona il repository
-git clone [https://github.com/albertofurnari/prompt-assistant-creator.git](https://github.com/albertofurnari/prompt-assistant-creator.git)
+git clone (https://github.com/albertofurnari/prompt-assistant-creator.git
 cd prompt-assistant-creator
 
 # Crea virtualenv e installa dipendenze
@@ -100,7 +100,7 @@ Il progetto adotta standard di sviluppo enterprise per garantire manutenibilità
 
   * **Runtime:** Python 3.11+
   * **UI/UX:** [Rich](https://github.com/Textualize/rich) per il rendering terminale avanzato, [Prompt Toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit) per input multiriga.
-  * **Data Validation:** [Pydantic](https://www.google.com/search?q=https://docs.pydantic.dev/) per la modellazione di stati, telemetria e configurazione.
+  * **Data Validation:** [Pydantic](https://docs.pydantic.dev/) per la modellazione di stati, telemetria e configurazione.
   * **Quality Assurance:**
       * `pytest` + `VCRpy` per test di regressione e registrazione/mocking delle chiamate API.
       * `Hypothesis` per il property-based testing.
