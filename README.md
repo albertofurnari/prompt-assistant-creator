@@ -62,7 +62,7 @@ graph TD
 
 ```bash
 # Clona il repository
-git clone (https://github.com/albertofurnari/prompt-assistant-creator.git
+git clone https://github.com/albertofurnari/prompt-assistant-creator.git
 cd prompt-assistant-creator
 
 # Crea virtualenv e installa dipendenze
@@ -128,7 +128,9 @@ Se sei un System Engineer, un Backend Dev o un AI Engineer interessato a rendere
 
   * Senior System Engineer | AI Technical Lead
   * [LinkedIn](https://www.linkedin.com/in/alberto-furnari-97695028)
+  * [SubStack](https://albertofurnari.substack.com/)
+  * [Facebook Group - Prompt Engineering Italia](https://www.facebook.com/groups/722916150105731)
+  * [X.com - Twitter](https://x.com/AlbertoFurnari)
+  * [Pubblicazioni Amazon](https://www.amazon.it/stores/author/B0DSWM5THD?ingress=0&visitId=2646513b-9c16-4db4-b797-b9d7310adb4e&ref_=ap_rdr#)
 
 <!-- end list -->
-
-```
