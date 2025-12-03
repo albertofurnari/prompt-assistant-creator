@@ -4,6 +4,7 @@
 ![Code Style](https://img.shields.io/badge/Code%20Style-Black%20%7C%20Ruff-black?style=for-the-badge)
 ![Type Checking](https://img.shields.io/badge/Type%20Checker-Mypy-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+[![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=for-the-badge&logo=github)](https://github.com/sponsors/albertofurnari)
 
 > **Engineering over Guesswork.**
 > Un tool CLI per trasformare il Prompt Engineering da arte empirica a processo deterministico, strutturato e tipizzato.
