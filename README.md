@@ -40,7 +40,7 @@ graph TD
     
     Session -->|Finalize| Harmonizer[Global Harmonizer]
     Harmonizer -->|Smoothing| Output[Final Markdown Prompt]
-````
+```
 
 ### Componenti Chiave
 
