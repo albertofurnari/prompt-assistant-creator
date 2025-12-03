@@ -40,7 +40,7 @@ graph TD
     
     Session -->|Finalize| Harmonizer[Global Harmonizer]
     Harmonizer -->|Smoothing| Output[Final Markdown Prompt]
-```
+````
 
 ### Componenti Chiave
 
@@ -130,4 +130,5 @@ Se sei un System Engineer, un Backend Dev o un AI Engineer interessato a rendere
   * [LinkedIn](https://www.linkedin.com/in/alberto-furnari-97695028)
 
 <!-- end list -->
+
 ```
