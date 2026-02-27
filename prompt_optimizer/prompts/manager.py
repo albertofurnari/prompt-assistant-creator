@@ -70,4 +70,4 @@ class PromptManager:
         """Render the harmonization prompt for the full session state."""
 
         template = self._environment.from_string(self.global_harmonize_template)
-        return template.render(session_state=session.model_dump())
+        return template.render(session_state=session.model_dump(mode="json"))
